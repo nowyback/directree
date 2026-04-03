@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Tree Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #111;
+            border: 1px solid #333;
+            overflow: hidden;
+        }
+
+        .header {
+            background: #222;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid #333;
+        }
+
+        .header h1 {
+            font-size: 1.8em;
+            margin-bottom: 5px;
+            font-weight: normal;
+        }
+
+        .header p {
+            font-size: 0.9em;
+            opacity: 0.7;
+        }
+
+        .controls {
+            padding: 20px;
+            background: #1a1a1a;
+            border-bottom: 1px solid #333;
+        }
+
+        .control-group {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-item label {
+            font-weight: normal;
+            color: #ccc;
+            font-size: 0.9em;
+        }
+
+        .control-item input, .control-item select, .control-item textarea {
+            background: #333;
+            border: 1px solid #555;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 0;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .control-item input:focus, .control-item select:focus, .control-item textarea:focus {
+            outline: none;
+            border-color: #666;
+            background: #444;
+        }
+
+        .btn {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 8px 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            cursor: pointer;
+            align-self: flex-end;
+        }
+
+        .btn:hover {
+            background: #444;
+            border-color: #666;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .content {
+            padding: 20px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: #222;
+            color: #fff;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid #444;
+        }
+
+        .stat-card h3 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+            font-weight: normal;
+        }
+
+        .stat-card p {
+            opacity: 0.7;
+            font-size: 0.8em;
+        }
+
+        .tree-container {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 15px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .tree {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .tree-item {
+            margin: 2px 0;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .tree-item:hover {
+            background-color: #333;
+        }
+
+        .tree-item.file {
+            color: #ccc;
+        }
+
+        .tree-item.directory {
+            color: #fff;
+            font-weight: normal;
+        }
+
+        .tree-item.error {
+            color: #ff6b6b;
+            font-style: italic;
+        }
+
+        .tree-toggle {
+            display: inline-block;
+            width: 15px;
+            text-align: center;
+            color: #666;
+        }
+
+        .tree-children {
+            margin-left: 20px;
+        }
+
+        .tree-children.collapsed {
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+        }
+
+        .error {
+            background: #2a1a1a;
+            color: #ff6b6b;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ff4444;
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-wrapper input[type="checkbox"] {
+            width: auto;
+            margin-right: 5px;
+        }
+
+        .copy-btn {
+            background: #444;
+            color: #fff;
+            border: 1px solid #666;
+            padding: 6px 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .copy-btn:hover {
+            background: #555;
+            border-color: #777;
+        }
+
+        .copy-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌳 File Tree Generator</h1>
+            <p>Automatically generate and explore directory structures</p>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <div class="control-item">
+                    <label for="path">Root Path</label>
+                    <input type="text" id="path" value="." placeholder="Enter directory path">
+                    <button class="btn" style="margin-top: 5px; padding: 8px 15px; font-size: 12px;" onclick="selectDirectory()">Browse</button>
+                </div>
+                
+                <div class="control-item">
+                    <label for="maxDepth">Max Depth</label>
+                    <select id="maxDepth">
+                        <option value="3">3 levels</option>
+                        <option value="5" selected>5 levels</option>
+                        <option value="10">10 levels</option>
+                        <option value="999">Unlimited</option>
+                    </select>
+                </div>
+                
+                <div class="control-item">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="showHidden">
+                        <label for="showHidden">Show Hidden Files</label>
+                    </div>
+                </div>
+                
+                <div class="control-item">
+                    <label for="ignoreList">Ignore Patterns</label>
+                    <textarea id="ignoreList" rows="3" placeholder="Enter patterns to ignore (one per line)&#10;Examples:&#10;*.log&#10;node_modules&#10;*.tmp&#10;.DS_Store"></textarea>
+                </div>
+                
+                <button class="btn" onclick="generateTree()">Generate Tree</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="stats" class="stats" style="display: none;">
+                <div class="stat-card">
+                    <h3 id="fileCount">0</h3>
+                    <p>Files</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="dirCount">0</h3>
+                    <p>Directories</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="totalSize">0</h3>
+                    <p>Total Size</p>
+                </div>
+                <div class="stat-card" style="display: flex; align-items: center; justify-content: center;">
+                    <button class="copy-btn" id="copyBtn" onclick="copyTree()" disabled>Copy Tree</button>
+                </div>
+            </div>
+
+            <div id="treeContainer" class="tree-container">
+                <div class="loading">
+                    <p>Click "Generate Tree" to start exploring directory structure</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTree = null;
+
+        function generateTree() {
+            const path = document.getElementById('path').value;
+            const maxDepth = document.getElementById('maxDepth').value;
+            const showHidden = document.getElementById('showHidden').checked;
+            const ignoreListText = document.getElementById('ignoreList').value;
+            
+            // Parse ignore list
+            const ignoreList = ignoreListText
+                .split('\n')
+                .map(pattern => pattern.trim())
+                .filter(pattern => pattern.length > 0);
+            
+            const button = document.querySelector('.btn');
+            button.disabled = true;
+            button.textContent = 'Generating...';
+            
+            const treeContainer = document.getElementById('treeContainer');
+            treeContainer.innerHTML = '<div class="loading">Generating file tree...</div>';
+            
+            // Use Electron API instead of fetch
+            window.electronAPI.getFileTree({
+                path: path,
+                maxDepth: parseInt(maxDepth),
+                showHidden: showHidden,
+                ignoreList: ignoreList
+            }).then(result => {
+                if (result.success) {
+                    currentTree = result.tree;
+                    displayTree(result.tree, result.stats, result.rootPath);
+                    displayStats(result.stats);
+                } else {
+                    showError(result.error);
+                }
+            }).catch(error => {
+                showError('Error generating tree: ' + error.message);
+            }).finally(() => {
+                button.disabled = false;
+                button.textContent = 'Generate Tree';
+            });
+        }
+        
+        function displayTree(tree, stats, rootPath) {
+            const container = document.getElementById('treeContainer');
+            container.innerHTML = `<div class="tree" id="treeRoot"></div>`;
+            
+            if (tree) {
+                renderTreeItem(tree, document.getElementById('treeRoot'), true);
+            } else {
+                container.innerHTML = '<div class="error">No tree data available</div>';
+            }
+        }
+        
+        function renderTreeItem(item, parentElement, isRoot = false) {
+            const div = document.createElement('div');
+            div.className = `tree-item ${item.type}`;
+            
+            if (item.type === 'error') {
+                div.innerHTML = `🚫 ${item.name} - ${item.error}`;
+            } else {
+                let html = '';
+                
+                if (item.type === 'directory' && item.children && item.children.length > 0) {
+                    html += `<span class="tree-toggle" onclick="toggleTree(this)">▼</span>`;
+                } else if (item.type === 'directory') {
+                    html += `<span class="tree-toggle">📁</span>`;
+                } else {
+                    html += `<span class="tree-toggle">${getFileIcon(item.name)}</span>`;
+                }
+                
+                // Add click handler for files and directories
+                const clickHandler = item.type === 'file' 
+                    ? `onclick="openFile('${item.path.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" style="cursor: pointer;"`
+                    : item.type === 'directory'
+                    ? `onclick="openInExplorer('${item.path.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" style="cursor: pointer;"`
+                    : '';
+                
+                html += ` <span ${clickHandler}>${item.name}</span>`;
+                
+                if (item.type === 'file' && item.size !== null) {
+                    html += ` <span style="color: #666; font-size: 0.8em;">(${formatFileSize(item.size)})</span>`;
+                }
+                
+                if (item.type === 'directory' && item.file_count !== undefined) {
+                    html += ` <span style="color: #666; font-size: 0.8em;">(${item.file_count} files, ${item.dir_count} dirs)</span>`;
+                }
+                
+                div.innerHTML = html;
+            }
+            
+            parentElement.appendChild(div);
+            
+            if (item.type === 'directory' && item.children && item.children.length > 0) {
+                const childrenDiv = document.createElement('div');
+                childrenDiv.className = 'tree-children';
+                parentElement.appendChild(childrenDiv);
+                
+                item.children.forEach(child => {
+                    renderTreeItem(child, childrenDiv);
+                });
+            }
+        }
+        
+        function toggleTree(element) {
+            event.stopPropagation(); // Prevent file/folder click from firing
+            
+            // Find the parent tree item, then find its children container
+            const treeItem = element.parentElement;
+            const childrenContainer = treeItem.nextElementSibling;
+            
+            if (childrenContainer && childrenContainer.classList.contains('tree-children')) {
+                const isCollapsing = !childrenContainer.classList.contains('collapsed');
+                
+                if (isCollapsing) {
+                    // Collapse this folder and all its subfolders
+                    collapseAllSubfolders(childrenContainer);
+                    childrenContainer.classList.add('collapsed');
+                    element.textContent = '▶';
+                } else {
+                    // Expand this folder
+                    childrenContainer.classList.remove('collapsed');
+                    element.textContent = '▼';
+                }
+            }
+        }
+        
+        function collapseAllSubfolders(container) {
+            // Find all subfolder children containers and collapse them
+            const subContainers = container.querySelectorAll('.tree-children');
+            subContainers.forEach(subContainer => {
+                subContainer.classList.add('collapsed');
+            });
+            
+            // Find all toggle elements within this container and reset them to collapsed state
+            const toggleElements = container.querySelectorAll('.tree-toggle');
+            toggleElements.forEach(toggle => {
+                if (toggle.textContent === '▼') {
+                    toggle.textContent = '▶';
+                }
+            });
+        }
+        
+        async function openFile(filePath) {
+            try {
+                const result = await window.electronAPI.openFile(filePath);
+                if (!result.success) {
+                    console.error('Failed to open file:', result.error);
+                }
+            } catch (error) {
+                console.error('Error opening file:', error);
+            }
+        }
+        
+        async function openInExplorer(folderPath) {
+            try {
+                const result = await window.electronAPI.openInExplorer(folderPath);
+                if (!result.success) {
+                    console.error('Failed to open folder:', result.error);
+                }
+            } catch (error) {
+                console.error('Error opening folder:', error);
+            }
+        }
+        
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const iconMap = {
+                'js': '📜',
+                'py': '🐍',
+                'html': '🌐',
+                'css': '🎨',
+                'json': '📋',
+                'md': '📝',
+                'txt': '📄',
+                'jpg': '🖼️',
+                'png': '🖼️',
+                'gif': '🖼️',
+                'pdf': '📕',
+                'zip': '📦',
+                'exe': '⚙️'
+            };
+            return iconMap[ext] || '📄';
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function displayStats(stats) {
+            const statsDiv = document.getElementById('stats');
+            statsDiv.style.display = 'grid';
+            
+            document.getElementById('fileCount').textContent = stats.total_files || 0;
+            document.getElementById('dirCount').textContent = stats.total_dirs || 0;
+            document.getElementById('totalSize').textContent = formatFileSize(stats.total_size || 0);
+            
+            // Enable copy button if we have a tree
+            const copyBtn = document.getElementById('copyBtn');
+            copyBtn.disabled = !currentTree;
+        }
+        
+        function copyTree() {
+            if (!currentTree) return;
+            
+            const treeText = generateTreeText(currentTree);
+            
+            // Create a temporary textarea to copy text
+            const textarea = document.createElement('textarea');
+            textarea.value = treeText;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            
+            try {
+                textarea.select();
+                const successful = document.execCommand('copy');
+                
+                // Show feedback
+                const copyBtn = document.getElementById('copyBtn');
+                const originalText = copyBtn.textContent;
+                
+                if (successful) {
+                    copyBtn.textContent = 'Copied!';
+                    copyBtn.style.background = '#2d5a2d';
+                } else {
+                    copyBtn.textContent = 'Failed';
+                    copyBtn.style.background = '#5a2d2d';
+                }
+                
+                // Reset button after 2 seconds
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                    copyBtn.style.background = '';
+                }, 2000);
+                
+            } catch (err) {
+                console.error('Failed to copy tree:', err);
+                const copyBtn = document.getElementById('copyBtn');
+                copyBtn.textContent = 'Error';
+                setTimeout(() => {
+                    copyBtn.textContent = 'Copy Tree';
+                }, 2000);
+            } finally {
+                document.body.removeChild(textarea);
+            }
+        }
+        
+        function generateTreeText(node, prefix = '', isLast = true) {
+            if (!node || node.type === 'error') {
+                return prefix + (node ? `🚫 ${node.name} - ${node.error}` : 'Empty tree') + '\n';
+            }
+            
+            let result = prefix + (node.type === 'directory' ? '📁' : '📄') + ' ' + node.name;
+            
+            // Add file size info for files
+            if (node.type === 'file' && node.size !== null) {
+                result += ` (${formatFileSize(node.size)})`;
+            }
+            
+            // Add directory info for directories
+            if (node.type === 'directory' && node.file_count !== undefined) {
+                result += ` (${node.file_count} files, ${node.dir_count} dirs)`;
+            }
+            
+            result += '\n';
+            
+            // Add children
+            if (node.children && node.children.length > 0) {
+                const newPrefix = prefix + (isLast ? '    ' : '│   ');
+                node.children.forEach((child, index) => {
+                    const isLastChild = index === node.children.length - 1;
+                    const childPrefix = newPrefix + (isLastChild ? '└── ' : '├── ');
+                    result += generateTreeText(child, childPrefix, isLastChild);
+                });
+            }
+            
+            return result;
+        }
+        
+        function showError(message) {
+            const container = document.getElementById('treeContainer');
+            container.innerHTML = `<div class="error">Error: ${message}</div>`;
+        }
+        
+        // Load available directories on page load
+        window.onload = function() {
+            loadDirectories();
+        };
+
+        async function loadDirectories() {
+            try {
+                const result = await window.electronAPI.getDirectories();
+                if (result.success && result.directories && result.directories.length > 0) {
+                    console.log('Available directories:', result.directories);
+                }
+            } catch (error) {
+                console.log('Could not load directories:', error);
+            }
+        }
+
+        async function selectDirectory() {
+            try {
+                const selectedPath = await window.electronAPI.selectDirectory();
+                if (selectedPath) {
+                    document.getElementById('path').value = selectedPath;
+                }
+            } catch (error) {
+                console.error('Directory selection error:', error);
+                showError('Error selecting directory: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

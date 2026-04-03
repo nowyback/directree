@@ -1,0 +1,21 @@
+{
+  "name": "file-tree-generator",
+  "version": "1.0.0",
+  "description": "A desktop app for generating and exploring file trees",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "keywords": [
+    "file-tree",
+    "electron",
+    "desktop",
+    "file-explorer"
+  ],
+  "author": "File Tree Generator",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0"
+  }
+}
