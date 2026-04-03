@@ -113,7 +113,7 @@ file-tree-generator/
 - **Operating System**: Windows 10 or later
 - **Node.js**: Version 16 or higher
 - **Memory**: 512MB RAM minimum
-- **Storage**: 100MB free space
+- **Storage**: 270MB free space
 
 ## Troubleshooting
 
@@ -129,13 +129,24 @@ file-tree-generator/
 - Ensure all dependencies are installed (`npm install`)
 - Check that Node.js is in your system PATH
 
-## Development Mode
+## Contributing
 
-For development with DevTools:
-```bash
-npm run dev
-```
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## Donating
+
+To help me further programm stuff, please consider donating to my patreon: https://www.patreon.com/nowyback
 
 ## License
 
-MIT License
+MIT License - feel free to use this project for personal or commercial purposes.
+
+## Elements and Base
+
+---
+
+**Made with love by CHROMESHOT Studios**
